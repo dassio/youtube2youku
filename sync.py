@@ -142,7 +142,10 @@ def upload_video(video_info,access_token,youku_client_id):
         video_id = youku.upload(params)
     else:
         if video_id != "":
-            os.remove(file_name)
+            try:
+                os.remove(file_name)
+            except:
+                write_string("traceback.print_exc()")
             return video_id
 
 
