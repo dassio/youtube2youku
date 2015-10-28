@@ -84,7 +84,7 @@ def get_access_token(youku_client_id,youku_account,youku_passwd,youku_redirect_u
 #download video from website like youtube
 #--------------------------------------------------------
 def download_video(url):
-    downloader = YoutubeDL()
+    downloader =  YoutubeDL()
     res = downloader.download([url])
     filename = downloader.prepare_filename(res[1])
     ret_code = res[0]
@@ -122,7 +122,7 @@ def upload_video(video_info,access_token,youku_client_id):
 #   url:    video youtube watch url:    "https://www.youtube.com/watch?v=vd2dtkMINIw" 
 #--------------------------------------------------------
 def sync_video(url):
-    access_token = get_access_token(youku_client_id,youku_account,youku_passwd,youku_redirect_url,youku_client_secret)
+    access_toke n = get_access_token(youku_client_id,youku_account,youku_passwd,youku_redirect_url,youku_client_secret)
     video_id = upload_video(download_video(url),access_token,youku_client_id)
     return video_id
 
@@ -175,6 +175,6 @@ def sync_playlist(play_lists,google_api_key):
                     video_item.save()
  
 if __name__ == '__main__':
-    #print sync_video(["https://www.youtube.com/watch?v=l-lhyPcSd6I"])
-    sync_playlist(["PLtb1FJdVWjUfZ9fWxPPCrOO7LUquB3WrB"])
+    sync_video("https://www.youtube.com/watch?v=Gf0jp6jthFA")
+    sync_playlist(["PL61E5B398705E7D99"])
 
