@@ -147,7 +147,7 @@ def upload_video(video_info,access_token,youku_client_id):
 #--------------------------------------------------------
 def sync_video(url,youku_user_dict):
     youku_client_id = youku_user_dict["youku_client_id"]
-    access_toke  = get_access_token(youku_user_dict)
+    access_token  = get_access_token(youku_user_dict)
 
     video_id = upload_video(download_video(url),access_token,youku_client_id)
     return video_id
