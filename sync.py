@@ -122,7 +122,7 @@ def upload_video(video_info,access_token,youku_client_id):
 #   url:    video youtube watch url:    "https://www.youtube.com/watch?v=vd2dtkMINIw" 
 #--------------------------------------------------------
 def sync_video(url):
-    access_toke n = get_access_token(youku_client_id,youku_account,youku_passwd,youku_redirect_url,youku_client_secret)
+    access_toke  = get_access_token(youku_client_id,youku_account,youku_passwd,youku_redirect_url,youku_client_secret)
     video_id = upload_video(download_video(url),access_token,youku_client_id)
     return video_id
 
