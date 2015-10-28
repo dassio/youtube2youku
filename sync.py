@@ -79,7 +79,7 @@ class Video(Model):
 #get access toke for youku using your own username  and password
 #todo:Oauth2
 #---------------------------------------------------------------
-def get_access_token(youku_client_id,youku_account,youku_passwd,youku_redirect_url,youku_client_secret):
+def get_access_token(youku_user_dict):
     youku_client_id = youku_user_dict["youku_client_id"]
     youku_account = youku_user_dict["youku_account"]
     youku_passwd = youku_user_dict["youku_passwd"]
