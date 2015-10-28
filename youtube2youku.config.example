@@ -1,0 +1,13 @@
+youku_client_id  = "your youku client id"
+youku_client_secret = "your youku client secrect"
+youku_username = "your youku username"
+youku_passwd = "your youku passwd"
+youku_redirect_url = "your youku redirect url"
+
+google_api_key = "your google api key"
+google_client_id = "your google client id"
+
+mariadb_username = "your database server user name"
+mariadb_passwd = "your database server password"
+mariadb_database_name = "your database name"
+mariadb_socket_path = "/var/lib/mysql/mysql.sock"
