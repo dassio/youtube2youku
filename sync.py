@@ -47,6 +47,24 @@ mariadb_socket_path = re.compile("mariadb_socket_path\s*=\s*\"(.*)\"").search(co
 
 db =MySQLDatabase(mariadb_database_name,user=mariadb_username,passwd=mariadb_passwd,unix_socket=mariadb_socket_path)
 
+#dic for youku google database
+youku_user_dict = {
+        "youku_client_id":youku_client_id,
+        "youku_client_secret":youku_client_secret,
+        "youku_username":youku_username,
+        "youku_passwd":youku_passwd,
+        "youku_redirect_url":youku_redirect_url
+        }
+google_user_dict = {
+        "google_api_key":google_api_key,
+        "google_client_id":google_client_id,
+        }
+database_user_dict = {
+        "mariadb_username":mariadb_username,
+        "mariadb_passwd":mariadb_passwd,
+        "mariadb_database_name":mariadb_database_name,
+        "mariadb_socket_path":mariadb_socket_path
+        }
 #Class for video info 
 #using peewee
 class Video(Model):
@@ -62,6 +80,12 @@ class Video(Model):
 #todo:Oauth2
 #---------------------------------------------------------------
 def get_access_token(youku_client_id,youku_account,youku_passwd,youku_redirect_url,youku_client_secret):
+    youku_client_id = youku_user_dict["youku_client_id"]
+    youku_account = youku_user_dict["youku_account"]
+    youku_passwd = youku_user_dict["youku_passwd"]
+    youku_redirect_url = youku_user_dict["youku_redirect_url"]
+    youku_client_secret = youku_user_dict["youku_client_secret"]
+
     data = urllib.urlencode({'client_id': youku_client_id, 'response_type': 'code', 'redirect_uri': youku_redirect_url, 'account': youku_account,'password': youku_passwd, 'auth_type': '1'})
     request = urllib2.Request(url="https://openapi.youku.com//v2/oauth2/authorize_submit",data=data)
     try:
@@ -121,8 +145,10 @@ def upload_video(video_info,access_token,youku_client_id):
 #args:
 #   url:    video youtube watch url:    "https://www.youtube.com/watch?v=vd2dtkMINIw" 
 #--------------------------------------------------------
-def sync_video(url):
-    access_toke  = get_access_token(youku_client_id,youku_account,youku_passwd,youku_redirect_url,youku_client_secret)
+def sync_video(url,youku_user_dict,google_user_dict,database_user_dict):
+    youku_client_id = youku_user_dict["youku_client_id"]
+    access_toke  = get_access_token(youku_user_dict)
+
     video_id = upload_video(download_video(url),access_token,youku_client_id)
     return video_id
 
@@ -131,7 +157,8 @@ def sync_video(url):
 #args:
 #   play_list:  an array of playlist id:    "["PLtb1FJdVWjUfZ9fWxPPCrOO7LUquB3WrB"]"
 #------------------------------------------------------------------
-def sync_playlist(play_lists,google_api_key):
+def sync_playlist(play_lists,google_user_dict):
+    google_api_key = google_user_dict["google_api_key"]
     service = build("youtube","v3",developerKey=google_api_key)
     play_list_items = service.playlistItems()
     for playlist in play_lists:
@@ -175,6 +202,6 @@ def sync_playlist(play_lists,google_api_key):
                     video_item.save()
  
 if __name__ == '__main__':
-    sync_video("https://www.youtube.com/watch?v=Gf0jp6jthFA")
-    sync_playlist(["PL61E5B398705E7D99"])
+    sync_video("https://www.youtube.com/watch?v=Gf0jp6jthFA",youku_user_dict)
+    sync_playlist(["PL61E5B398705E7D99"],google_user_dict)
 
