@@ -331,5 +331,5 @@ class YoukuUpload(object):
             while self.slice_task_id != 0:
                 self.upload_slice()
 	        write_string(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"), out=None, encoding="UTF-8")
-            write_string(("uploading complete")
+            write_string("uploading complete")
             return self.commit()
