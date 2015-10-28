@@ -157,7 +157,7 @@ def sync_video(url,youku_user_dict):
 #args:
 #   play_list:  an array of playlist id:    "["PLtb1FJdVWjUfZ9fWxPPCrOO7LUquB3WrB"]"
 #------------------------------------------------------------------
-def sync_playlist(play_lists,google_user_dict):
+def sync_playlist(play_lists,google_user_dict,youku_user_dict):
     google_api_key = google_user_dict["google_api_key"]
     service = build("youtube","v3",developerKey=google_api_key)
     play_list_items = service.playlistItems()
@@ -178,7 +178,7 @@ def sync_playlist(play_lists,google_user_dict):
                 video_item = Video(video_id=video_id,channel_id=channel_id,playlist_id=playlist_id,video_title=video_title)
                 video_url  = "https://www.youtube.com/watch?v=" + video_id
                 video_url = video_url.encode('ascii','ignore')
-                youku_video_id = sync_video(video_url)
+                youku_video_id = sync_video(video_url,youku_user_dict)
                 video_item.youku_video_id = youku_video_id
                 video_item.save() 
 
@@ -197,11 +197,11 @@ def sync_playlist(play_lists,google_user_dict):
                     video_item = Video(video_id=video_id,channel_id=channel_id,playlist_id=playlist_id,video_title=video_title)
                     video_url  = "https://www.youtube.com/watch?v=" + video_id
                     video_url = video_url.encode('ascii','ignore')
-                    youku_video_id = sync_video(video_url)
+                    youku_video_id = sync_video(video_url,youku_user_dict)
                     video_item.youku_video_id = youku_video_id
                     video_item.save()
  
 if __name__ == '__main__':
      #sync_video("https://www.youtube.com/watch?v=Gf0jp6jthFA",youku_user_dict)
-     sync_playlist(["PL61E5B398705E7D99"],google_user_dict)
+     sync_playlist(["PL61E5B398705E7D99"],google_user_dict,youku_user_dict)
 
