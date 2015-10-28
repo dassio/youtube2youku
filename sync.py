@@ -81,12 +81,12 @@ class Video(Model):
 #---------------------------------------------------------------
 def get_access_token(youku_user_dict):
     youku_client_id = youku_user_dict["youku_client_id"]
-    youku_account = youku_user_dict["youku_account"]
+    youku_username = youku_user_dict["youku_username"]
     youku_passwd = youku_user_dict["youku_passwd"]
     youku_redirect_url = youku_user_dict["youku_redirect_url"]
     youku_client_secret = youku_user_dict["youku_client_secret"]
 
-    data = urllib.urlencode({'client_id': youku_client_id, 'response_type': 'code', 'redirect_uri': youku_redirect_url, 'account': youku_account,'password': youku_passwd, 'auth_type': '1'})
+    data = urllib.urlencode({'client_id': youku_client_id, 'response_type': 'code', 'redirect_uri': youku_redirect_url, 'account': youku_username,'password': youku_passwd, 'auth_type': '1'})
     request = urllib2.Request(url="https://openapi.youku.com//v2/oauth2/authorize_submit",data=data)
     try:
         response = urllib2.urlopen(request)
