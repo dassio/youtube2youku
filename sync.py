@@ -38,6 +38,8 @@ youku_redirect_url =re.compile("youku_redirect_url\s*=\s*\"(.*)\"").search(confi
 #google api credential 
 google_api_key = re.compile("google_api_key\s*=\s*\"(.*)\"").search(config_data).group(1)
 google_client_id = re.compile("google_client_id\s*=\s*\"(.*)\"").search(config_data).group(1)
+google_username  = re.compile("google_username\s*=\s*\"(.*)\"").search(config_data).group(1)
+google_passwd  = re.compile("google_passwd\s*=\s*\"(.*)\"").search(config_data).group(1)
 
 #mariadb username and password
 mariadb_username = re.compile("mariadb_username\s*=\s*\"(.*)\"").search(config_data).group(1)
@@ -58,6 +60,8 @@ youku_user_dict = {
 google_user_dict = {
         "google_api_key":google_api_key,
         "google_client_id":google_client_id,
+        "google_username":google_username,
+        "google_passwd":google_passwd,
         }
 database_user_dict = {
         "mariadb_username":mariadb_username,
@@ -107,8 +111,9 @@ def get_access_token(youku_user_dict):
 
 #download video from website like youtube
 #--------------------------------------------------------
-def download_video(url):
-    downloader =  YoutubeDL()
+def download_video(url,google_user_dict):
+    params = {{"username":google_user_dict["google_username"],"password":google_user_dict["google_passwd"]}
+    downloader =  YoutubeDL(params)
     res = downloader.download([url])
     filename = downloader.prepare_filename(res[1])
     ret_code = res[0]
@@ -145,11 +150,11 @@ def upload_video(video_info,access_token,youku_client_id):
 #args:
 #   url:    video youtube watch url:    "https://www.youtube.com/watch?v=vd2dtkMINIw" 
 #--------------------------------------------------------
-def sync_video(url,youku_user_dict):
+def sync_video(url,google_user_dict,youku_user_dict):
     youku_client_id = youku_user_dict["youku_client_id"]
     access_token  = get_access_token(youku_user_dict)
 
-    video_id = upload_video(download_video(url),access_token,youku_client_id)
+    video_id = upload_video(download_video(url,google_user_dict),access_token,youku_client_id)
     return video_id
 
 
@@ -178,7 +183,7 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
                 video_item = Video(video_id=video_id,channel_id=channel_id,playlist_id=playlist_id,video_title=video_title)
                 video_url  = "https://www.youtube.com/watch?v=" + video_id
                 video_url = video_url.encode('ascii','ignore')
-                youku_video_id = sync_video(video_url,youku_user_dict)
+                youku_video_id = sync_video(video_url,google_user_dict,youku_user_dict)
                 video_item.youku_video_id = youku_video_id
                 video_item.save() 
 
@@ -197,11 +202,11 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
                     video_item = Video(video_id=video_id,channel_id=channel_id,playlist_id=playlist_id,video_title=video_title)
                     video_url  = "https://www.youtube.com/watch?v=" + video_id
                     video_url = video_url.encode('ascii','ignore')
-                    youku_video_id = sync_video(video_url,youku_user_dict)
+                    youku_video_id = sync_video(video_url,google_user_dict,youku_user_dict)
                     video_item.youku_video_id = youku_video_id
                     video_item.save()
  
 if __name__ == '__main__':
-     #sync_video("https://www.youtube.com/watch?v=Gf0jp6jthFA",youku_user_dict)
+     #sync_video("https://www.youtube.com/watch?v=Gf0jp6jthFA",google_user_dict,youku_user_dict)
      sync_playlist(["PL61E5B398705E7D99"],google_user_dict,youku_user_dict)
 
