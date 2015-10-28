@@ -212,6 +212,6 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
                     video_item.save()
  
 if __name__ == '__main__':
-     #sync_video("https://www.youtube.com/watch?v=Gf0jp6jthFA",google_user_dict,youku_user_dict)
+     sync_video("https://www.youtube.com/watch?v=eNzenkoeJcY",google_user_dict,youku_user_dict)
      sync_playlist(["PL61E5B398705E7D99"],google_user_dict,youku_user_dict)
 

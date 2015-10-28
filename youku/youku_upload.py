@@ -316,16 +316,20 @@ class YoukuUpload(object):
                 return self.commit()
             else:
                 self.new_slice()
+                write_string("start uploading to youku")
                 while self.slice_task_id != 0:
                     self.upload_slice()
                     write_string(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"), out=None, encoding="UTF-8")
+                write_string("upoading complete")
                 return self.commit()
         else:
             # new upload
             self.create(self.prepare_video_params(**params))
             self.create_file()
             self.new_slice()
+            write_string(("start uploading to youku")
             while self.slice_task_id != 0:
                 self.upload_slice()
 	        write_string(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"), out=None, encoding="UTF-8")
+            write_string(("uploading complete")
             return self.commit()
