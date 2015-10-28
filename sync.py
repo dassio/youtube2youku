@@ -112,7 +112,7 @@ def get_access_token(youku_user_dict):
 #download video from website like youtube
 #--------------------------------------------------------
 def download_video(url,google_user_dict):
-    params = {{"username":google_user_dict["google_username"],"password":google_user_dict["google_passwd"]}
+    params = {"username":google_user_dict["google_username"],"password":google_user_dict["google_passwd"]}
     downloader =  YoutubeDL(params)
     res = downloader.download([url])
     filename = downloader.prepare_filename(res[1])
