@@ -215,7 +215,7 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
                     Video.get(video_id=video_id)
                 except Video.DoesNotExist:
                     video_item = Video(video_id=video_id,channel_id=channel_id,playlist_id=playlist_id,video_title=video_title)
-                    if video_title != "Private video":
+                    if video_title != "Private video":  # if the title is "Priavte video, we can't download it right now"
                         video_url  = "https://www.youtube.com/watch?v=" + video_id
                         video_url = video_url.encode('ascii','ignore')
                         youku_video_id = sync_video(video_url,google_user_dict,youku_user_dict)
