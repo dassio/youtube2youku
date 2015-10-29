@@ -6,6 +6,9 @@ youku_redirect_url = "your youku redirect url"
 
 google_api_key = "your google api key"
 google_client_id = "your google client id"
+[Optional]
+google_username = "yout google username to login to youtube"
+google_passwd = "your google password"
 
 mariadb_username = "your database server user name"
 mariadb_passwd = "your database server password"
