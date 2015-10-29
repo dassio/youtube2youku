@@ -38,8 +38,16 @@ youku_redirect_url =re.compile("youku_redirect_url\s*=\s*\"(.*)\"").search(confi
 #google api credential 
 google_api_key = re.compile("google_api_key\s*=\s*\"(.*)\"").search(config_data).group(1)
 google_client_id = re.compile("google_client_id\s*=\s*\"(.*)\"").search(config_data).group(1)
-google_username  = re.compile("google_username\s*=\s*\"(.*)\"").search(config_data).group(1)
-google_passwd  = re.compile("google_passwd\s*=\s*\"(.*)\"").search(config_data).group(1)
+match = re.compile("google_username\s*=\s*\"(.*)\"").search(config_data)
+if match != None:
+    google_username  = match.group(1)
+else:
+    google_username = None
+match = re.compile("google_passwd\s*=\s*\"(.*)\"").search(config_data)
+if match != None:
+    google_passwd  = match.group(1)
+else:
+    google_passwd = None
 
 #mariadb username and password
 mariadb_username = re.compile("mariadb_username\s*=\s*\"(.*)\"").search(config_data).group(1)
@@ -112,7 +120,10 @@ def get_access_token(youku_user_dict):
 #download video from website like youtube
 #--------------------------------------------------------
 def download_video(url,google_user_dict):
-    params = {"username":google_user_dict["google_username"],"password":google_user_dict["google_passwd"]}
+    if google_user_dict["google_username"] != None and google_user_dict["google_passwd"]:
+        params = {"username":google_user_dict["google_username"],"password":google_user_dict["google_passwd"]}
+    else:
+        params = {}
     downloader =  YoutubeDL(params)
     res = downloader.download([url])
     filename = downloader.prepare_filename(res[1])
