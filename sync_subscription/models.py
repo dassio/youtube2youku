@@ -9,15 +9,9 @@ class Video(models.Model):
     youku_video_id = models.CharField(max_length=30, blank=True, null=True)
     sync_date =  models.DateTimeField('date synced')
 
-    class Meta:
-        db_table = 'video'
-
 class Token(models.Model):
     access_token = models.CharField(max_length=255)
     refresh_token = models.CharField(max_length=255)
     expires_in = models.CharField(max_length=255)
     user_id = models.CharField(max_length=255)
     authorize_datetime = models.DateTimeField('authorized date')
-
-    class Meta:
-        db_table = 'authorization'

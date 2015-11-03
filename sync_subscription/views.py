@@ -23,6 +23,8 @@ def index(request):
     context = {"playlists": playlists}
     return render(request,"sync_subscription/index.html",context)
 def check_youku_existing_youtube_video(request):
+    if not "access_token" in request.session:
+        sync.get_access_token(sync.youku_user_dict)
     playlists = sync.get_playlist(sync.youku_user_dict)
     response = {"playlists": playlists}
     data = json.dumps(response)
