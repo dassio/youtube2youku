@@ -4,8 +4,8 @@ from youtube_dl import YoutubeDL
 from youku.youku_upload import YoukuUpload
 #google python sdk : pip install --upgrade google-api-python-client
 from apiclient.discovery import build
-#Peewee ORM : pip install peewee
-from peewee import *
+
+from django.contrib.sessions.backends.db import SessionStore
 
 import urllib2
 import urllib
@@ -19,6 +19,8 @@ import random
 import shlex
 import sys
 import json
+import pdb
+import requests
 
 try:
     config_file = open("youtube2youku.config")
@@ -55,7 +57,6 @@ mariadb_passwd = re.compile("mariadb_passwd\s*=\s*\"(.*)\"").search(config_data)
 mariadb_database_name = re.compile("mariadb_database_name\s*=\s*\"(.*)\"").search(config_data).group(1)
 mariadb_socket_path = re.compile("mariadb_socket_path\s*=\s*\"(.*)\"").search(config_data).group(1)
 
-db =MySQLDatabase(mariadb_database_name,user=mariadb_username,passwd=mariadb_passwd,unix_socket=mariadb_socket_path)
 
 #dic for youku google database
 youku_user_dict = {
@@ -77,18 +78,9 @@ database_user_dict = {
         "mariadb_database_name":mariadb_database_name,
         "mariadb_socket_path":mariadb_socket_path
         }
-#Class for video info 
-#using peewee
-class Video(Model):
-    video_id = CharField()
-    channel_id = CharField()
-    playlist_id = CharField()
-    video_title = CharField()
-    youku_video_id = CharField()
-    class Meta:
-        database = db
 
 #get access toke for youku using your own username  and password
+#save the token to Session so don't have to get access_token for every request
 #todo:Oauth2
 #---------------------------------------------------------------
 def get_access_token(youku_user_dict):
@@ -97,25 +89,22 @@ def get_access_token(youku_user_dict):
     youku_passwd = youku_user_dict["youku_passwd"]
     youku_redirect_url = youku_user_dict["youku_redirect_url"]
     youku_client_secret = youku_user_dict["youku_client_secret"]
-
-    data = urllib.urlencode({'client_id': youku_client_id, 'response_type': 'code', 'redirect_uri': youku_redirect_url, 'account': youku_username,'password': youku_passwd, 'auth_type': '1'})
-    request = urllib2.Request(url="https://openapi.youku.com//v2/oauth2/authorize_submit",data=data)
-    try:
-        response = urllib2.urlopen(request)
-    except URLError as e:
-        print e.reason
-
-    query  = urlparse.urlparse(response.geturl()).query
+    #get authorization code
+    data = {'client_id': youku_client_id, 'response_type': 'code', 'redirect_uri': youku_redirect_url, 'account': youku_username,'password': youku_passwd, 'auth_type': '1'}
+    url="https://openapi.youku.com//v2/oauth2/authorize_submit"
+    response = requests.post(url,data=data).url
+    pdb.set_trace()
     code = urlparse.parse_qs(query)["code"][0]
-    data = urllib.urlencode({'client_id': youku_client_id, 'client_secret':
-    youku_client_secret, 'redirect_uri': youku_redirect_url, 'code': code, 'grant_type': 'authorization_code'})
-    request = urllib2.Request(url="https://openapi.youku.com/v2/oauth2/token",data=data)
-    try:
-        response = urllib2.urlopen(request)
-    except URLError as e:
-        print e.reason
-    res = json.load(response)
-    return res["access_token"]
+    #get access_token
+    data = {'client_id': youku_client_id, 'client_secret': youku_client_secret, 'redirect_uri': youku_redirect_url, 'code': code, 'grant_type': 'authorization_code'}
+    url="https://openapi.youku.com/v2/oauth2/token"
+    response = requests.post(url,data=data).json()
+    #save access_token to Session
+    s = SessionStore()
+    s["access_token"] = response["access_token"]
+    s["refresh_token"] = response["refresh_token"]
+    s["token_type"] = response["token_type"]
+    s.save()
 
 #download video from website like youtube
 #--------------------------------------------------------
@@ -221,8 +210,8 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
                         youku_video_id = sync_video(video_url,google_user_dict,youku_user_dict)
                         video_item.youku_video_id = youku_video_id
                     video_item.save()
- 
-if __name__ == '__main__':
-     #sync_video("https://www.youtube.com/watch?v=eNzenkoeJcY",google_user_dict,youku_user_dict)
-     sync_playlist(["PL689D6EE903ED5CB6"],google_user_dict,youku_user_dict)
+
+def get_playlist(youku_user_dict):
+    s = SessionStore()
+    access_token = s["access_token"]
 
