@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<head>
+    {% load staticfiles %}
+    <link rel="stylesheet" type="text/css" href="{% static 'sync_subscription/style.css' %}" />
+    <!--! bootstrap cdn -->
+    <script src="{% static "sync_subscription/jquery-1.11.3.min.js" %}"></script>
+    <link rel="stylesheet" href="{% static "sync_subscription/bootstrap.min.css" %}"/>
+    <script src="{% static "sync_subscription/bootstrap.min.js" %}"></script>
+</head>
+
+<script>
+    function get_youku_videos(){
+        $(".panel-body").each(function() {
+            var playlist_id = $(this)[0].getAttribute("class").split(" ")[1];
+            $.ajax({
+                url: "{% url "sync:get_youku_videos" %}",
+                data: "playlist_id="+playlist_id,
+                type: "GET",
+                datatype: "json",
+                success: function(json){
+                    videos = json.videos;
+                    text = $("<ul class='list-group'></ul>");
+                    $(playlist_id).append(text)
+                    $.each(videos,function(video){
+                        video_info = $("<li class='list-group-item'<h2>" + video.title + "</h2><a href='" + video.link + "'>" + "<image src='" + video.thumbnail + "'></image></a></li>")
+                        $(".list-group").append(video_info)
+                    });
+                }
+            });
+        });
+    }
+    //check for existing video on youku that is from youtube
+    function check_existing_youtube_videos(event){
+        $.ajax({ 
+            url: "{% url "sync:check_youku_existing_youtube_video" %}",
+            type: "GET",
+            datatype: "json",
+            success: function(json){
+                playlists = json.playlists;
+                $.each(playlists,function(index,item){
+                    var panel = $("<div class='panel panel-default'>            <div class='panel-heading'  id='headingOne'>                <h4 class='panel-title'>                    <a  data-toggle='collapse' data-parent='#accordion' href='#collapseThree'>                        Collapsible Group Item #1                    </a>                </h4>            </div>            <div id='collapseThree' class='panel-collapse collapse'>                <div class='panel-body'>                    hell                </div>            </div>        </div><!-- pannel -->")                    
+                    playlist_number = panel.find("a").html(item.name + "(" + item.video_count + ")");
+                    panel.find(".panel-body").attr("class","panel-body "+item.id)
+                    panel.find(".panel-body").parent().attr("id","collapse"+index)
+                    panel.find("a").attr("href","#collapse"+index)
+                    $(".panel-group").append(panel); 
+                 });
+             },
+         });
+         get_youku_videos();
+    }
+    $(document).ready(function(){
+         $("#check_existing_youtube_videos").bind("click",check_existing_youtube_videos)
+    });
+</script>
+<body>
+    <div id="compare_videos">
+        <button id="check_existing_youtube_videos" type="button">check existing youtube vides</button>
+        <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+        </div><!-- panel group-->
+
+    </div><!-- pannel group -->
+</div>
+{% if playlists %}
+<ul>
+    {% for playlist, videos in playlists.items %}
+    <li>{{playlist}}
+    <ul>
+        {% for video in videos %}
+        <li>{{video}}</li>
+        {% endfor %}
+    </ul>
+    {% endfor %}
+    </li>
+</ul>
+{% endif %}
+</body>
