@@ -8,70 +8,135 @@
     <script src="{% static "sync_subscription/bootstrap.min.js" %}"></script>
 </head>
 
+<style type="text/css">
+    #youku_videos {width:600px}
+
+</style>
+
 <script>
-    function get_youku_videos(){
-        $(".panel-body").each(function() {
-            var playlist_id = $(this)[0].getAttribute("class").split(" ")[1];
-            $.ajax({
-                url: "{% url "sync:get_youku_videos" %}",
-                data: "playlist_id="+playlist_id,
-                type: "GET",
-                datatype: "json",
-                success: function(json){
-                    videos = json.videos;
-                    text = $("<ul class='list-group'></ul>");
-                    $(playlist_id).append(text)
-                    $.each(videos,function(video){
-                        video_info = $("<li class='list-group-item'<h2>" + video.title + "</h2><a href='" + video.link + "'>" + "<image src='" + video.thumbnail + "'></image></a></li>")
-                        $(".list-group").append(video_info)
-                    });
-                }
-            });
+    //get videos for each playlist
+    function get_youku_videos(playlist_id){
+        $.ajax({
+            url: "{% url "sync:get_youku_videos" %}",
+            data: "playlist_id="+playlist_id,
+            type: "GET",
+            datatype: "json",
+            success: function(json){
+                var videos = json.videos;
+                text = $("<ul class='list-group'></ul>");
+                $("."+playlist_id).append(text)
+                $.each(videos,function(index,video){
+                    var video_id = video.id
+                    var video_info = $("<li class='list-group-item'><div class='checkbox'><label><input type='checkbox' id='"+ video_id + "'class='checkbox video_chkbox' value='" + video_id + "'>"+ video.title +"</label></div></li>")
+                    $("."+playlist_id + ">.list-group").append(video_info)
+                });
+            } 
         });
     }
     //check for existing video on youku that is from youtube
     function check_existing_youtube_videos(event){
+        $("#youku_videos").remove();
+        $(".video_edit").after("<div class='panel-group' id='youku_videos' role='tablist' aria-multiselectable='true'></div>");
         $.ajax({ 
             url: "{% url "sync:check_youku_existing_youtube_video" %}",
             type: "GET",
             datatype: "json",
             success: function(json){
-                playlists = json.playlists;
+                var playlists = json.playlists;
                 $.each(playlists,function(index,item){
-                    var panel = $("<div class='panel panel-default'>            <div class='panel-heading'  id='headingOne'>                <h4 class='panel-title'>                    <a  data-toggle='collapse' data-parent='#accordion' href='#collapseThree'>                        Collapsible Group Item #1                    </a>                </h4>            </div>            <div id='collapseThree' class='panel-collapse collapse'>                <div class='panel-body'>                    hell                </div>            </div>        </div><!-- pannel -->")                    
-                    playlist_number = panel.find("a").html(item.name + "(" + item.video_count + ")");
-                    panel.find(".panel-body").attr("class","panel-body "+item.id)
-                    panel.find(".panel-body").parent().attr("id","collapse"+index)
-                    panel.find("a").attr("href","#collapse"+index)
+                    var panel = $("<div class='panel panel-default'>            <div class='panel-heading'  id='headingOne'>                <h4 class='panel-title'>    </h4>            </div>            <div id='collapseThree' class='panel-collapse collapse'>                <div class='panel-body'>  </div>            </div>        </div><!-- pannel -->")                    
+                    var playlist_name = item.name;
+                    var playlist_id = item.id;
+                    var playlist_video_number = item.video_count;
+                    panel.find(".panel-title").append($("<div class='checkbox'><label><input type='checkbox' class='playlist_chkbox' value='"+playlist_id+"'/><a  data-toggle='collapse' data-parent='#youku_vidoes' href='#collapseThree'>"+playlist_name + "(" + playlist_video_number + ")</a></label></div>"));
+                    panel.find(".panel-body").attr("class","panel-body "+playlist_id);
+                    panel.find(".panel-body").parent().attr("id","collapse"+index);
+                    panel.find("a").attr("href","#collapse"+index);
                     $(".panel-group").append(panel); 
-                 });
-             },
-         });
-         get_youku_videos();
+                    get_youku_videos(playlist_id);
+                });
+            },
+        });
+    }
+
+
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie != '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = jQuery.trim(cookies[i]);
+                // Does this cookie string begin with the name we want?
+                if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    function delete_videos_playlists(event){
+        var lastChecked = null;
+        var chkboxes = $('.video_chkbox, .playlist_chkbox');
+        var video_ids = []
+        var playlist_ids = []
+        $.each(chkboxes,function(index,chkbox){
+            if(chkbox.checked == true && $(chkbox).attr("class")=="playlist_chkbox"){
+                playlist_ids.push(chkbox.value)
+            }else if(chkbox.checked == true && $(chkbox).attr("class").split(" ")[1] == "video_chkbox"){
+                video_ids.push(chkbox.value)
+            }
+        });
+        var csrftoken = getCookie('csrftoken');
+
+        $.ajax({
+            url: "{% url "sync:delete_youku_videos" %}",
+            type: "POST",
+            data: {"video_ids[]":video_ids,"playlist_ids[]":playlist_ids},
+            datatype: "json",
+            beforeSend: function(xhr, settings) {
+                if (!this.crossDomain) {
+                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            },
+            success: function(json){
+
+            },
+        });
     }
     $(document).ready(function(){
-         $("#check_existing_youtube_videos").bind("click",check_existing_youtube_videos)
+        $("#check_existing_youtube_videos").bind("click",check_existing_youtube_videos);
+        $("#delete_videos_playlists").bind("click",delete_videos_playlists);
+        $( document ).ajaxComplete(function() {
+            var lastChecked =  null
+            var $chkboxes = $('.video_chkbox,.playlist_chkbox');
+            $chkboxes.click(function(e) {
+                if(!lastChecked) {
+                    lastChecked = this;
+                    return;
+                }
+
+                if(e.shiftKey) {
+                    var start = $chkboxes.index(this);
+                    var end = $chkboxes.index(lastChecked);
+
+                    $chkboxes.slice(Math.min(start,end), Math.max(start,end)+ 1).prop('checked', lastChecked.checked);
+
+                }
+
+                lastChecked = this;
+            }); 
+        });
     });
 </script>
 <body>
     <div id="compare_videos">
-        <button id="check_existing_youtube_videos" type="button">check existing youtube vides</button>
-        <div class='panel-group' id='accordion' role='tablist' aria-multiselectable='true'>
+        <div class="video_edit">
+                <button id="check_existing_youtube_videos" type="button">check existing youtube vides</button>
+                <button id="delete_videos_playlists" type="button">delete</button>
+        </div>
+        <div class='panel-group' id='youku_videos' role='tablist' aria-multiselectable='true'>
         </div><!-- panel group-->
-
-    </div><!-- pannel group -->
+    </div><!-- compare_videos -->
 </div>
-{% if playlists %}
-<ul>
-    {% for playlist, videos in playlists.items %}
-    <li>{{playlist}}
-    <ul>
-        {% for video in videos %}
-        <li>{{video}}</li>
-        {% endfor %}
-    </ul>
-    {% endfor %}
-    </li>
-</ul>
-{% endif %}
 </body>

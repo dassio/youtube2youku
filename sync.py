@@ -4,8 +4,8 @@ from youtube_dl import YoutubeDL
 from youku.youku_upload import YoukuUpload
 #google python sdk : pip install --upgrade google-api-python-client
 from apiclient.discovery import build
-
-from django.contrib.sessions.backends.db import SessionStore
+#Peewee ORM : pip install peewee
+from peewee import *
 
 import urllib2
 import urllib
@@ -19,8 +19,6 @@ import random
 import shlex
 import sys
 import json
-import pdb
-import requests
 
 try:
     config_file = open("youtube2youku.config")
@@ -57,6 +55,7 @@ mariadb_passwd = re.compile("mariadb_passwd\s*=\s*\"(.*)\"").search(config_data)
 mariadb_database_name = re.compile("mariadb_database_name\s*=\s*\"(.*)\"").search(config_data).group(1)
 mariadb_socket_path = re.compile("mariadb_socket_path\s*=\s*\"(.*)\"").search(config_data).group(1)
 
+db =MySQLDatabase(mariadb_database_name,user=mariadb_username,passwd=mariadb_passwd,unix_socket=mariadb_socket_path)
 
 #dic for youku google database
 youku_user_dict = {
@@ -78,9 +77,18 @@ database_user_dict = {
         "mariadb_database_name":mariadb_database_name,
         "mariadb_socket_path":mariadb_socket_path
         }
+#Class for video info 
+#using peewee
+class Video(Model):
+    video_id = CharField()
+    channel_id = CharField()
+    playlist_id = CharField()
+    video_title = CharField()
+    youku_video_id = CharField()
+    class Meta:
+        database = db
 
 #get access toke for youku using your own username  and password
-#save the token to Session so don't have to get access_token for every request
 #todo:Oauth2
 #---------------------------------------------------------------
 def get_access_token(youku_user_dict):
@@ -89,16 +97,25 @@ def get_access_token(youku_user_dict):
     youku_passwd = youku_user_dict["youku_passwd"]
     youku_redirect_url = youku_user_dict["youku_redirect_url"]
     youku_client_secret = youku_user_dict["youku_client_secret"]
-    #get authorization code
-    data = {'client_id': youku_client_id, 'response_type': 'code', 'redirect_uri': youku_redirect_url, 'account': youku_username,'password': youku_passwd, 'auth_type': '1'}
-    url="https://openapi.youku.com//v2/oauth2/authorize_submit"
-    response = requests.post(url,data=data).url
-    code = urlparse.parse_qs(urlparse.urlparse(response).query)["code"][0]
-    #get access_token
-    data = {'client_id': youku_client_id, 'client_secret': youku_client_secret, 'redirect_uri': youku_redirect_url, 'code': code, 'grant_type': 'authorization_code'}
-    url="https://openapi.youku.com/v2/oauth2/token"
-    response = requests.post(url,data=data).json()
-    return response["access_token"],response["refresh_token"]
+
+    data = urllib.urlencode({'client_id': youku_client_id, 'response_type': 'code', 'redirect_uri': youku_redirect_url, 'account': youku_username,'password': youku_passwd, 'auth_type': '1'})
+    request = urllib2.Request(url="https://openapi.youku.com//v2/oauth2/authorize_submit",data=data)
+    try:
+        response = urllib2.urlopen(request)
+    except URLError as e:
+        print e.reason
+
+    query  = urlparse.urlparse(response.geturl()).query
+    code = urlparse.parse_qs(query)["code"][0]
+    data = urllib.urlencode({'client_id': youku_client_id, 'client_secret':
+    youku_client_secret, 'redirect_uri': youku_redirect_url, 'code': code, 'grant_type': 'authorization_code'})
+    request = urllib2.Request(url="https://openapi.youku.com/v2/oauth2/token",data=data)
+    try:
+        response = urllib2.urlopen(request)
+    except URLError as e:
+        print e.reason
+    res = json.load(response)
+    return res["access_token"]
 
 #download video from website like youtube
 #--------------------------------------------------------
@@ -140,12 +157,12 @@ def upload_video(video_info,access_token,youku_client_id):
                 os.remove(file_name)
             except:
                 write_string("traceback.print_exc()")
-            return video_id 
+            return video_id
 
 
 #sync video by downloading and uploading video
 #args:
-#   url:    video youtube watch url:    https://www.youtube.com/watch?v=vd2dtkMINIw
+#   url:    video youtube watch url:    "https://www.youtube.com/watch?v=vd2dtkMINIw" 
 #--------------------------------------------------------
 def sync_video(url,google_user_dict,youku_user_dict):
     youku_client_id = youku_user_dict["youku_client_id"]
@@ -204,120 +221,8 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
                         youku_video_id = sync_video(video_url,google_user_dict,youku_user_dict)
                         video_item.youku_video_id = youku_video_id
                     video_item.save()
+ 
+if __name__ == '__main__':
+     #sync_video("https://www.youtube.com/watch?v=eNzenkoeJcY",google_user_dict,youku_user_dict)
+     sync_playlist(["PL689D6EE903ED5CB6"],google_user_dict,youku_user_dict)
 
-#get youku user playlists
-#----------------------------------------
-def get_playlist(youku_user_dict,access_token,refresh_token):
-    #get all playlist and video in the playlists
-    url = "https://openapi.youku.com/v2/playlists/by_me.json"
-    data = {"client_id" : youku_user_dict["youku_client_id"],
-            "access_token" : access_token,}
-    response = requests.get(url,params=data).json()
-    playlists = response["playlists"]
-    playlist_video_ids = list()
-    for playlist in playlists:
-        playlist["video_count"] = len(get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token))
-        videos = get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token)
-        for video in videos:
-            playlist_video_ids.append(video["id"])
-    #get user all videos
-    all_video_ids_byme = list()
-    url = "https://openapi.youku.com/v2/videos/by_me.json"
-    data = {"client_id":youku_user_dict["youku_client_id"],
-            "access_token": access_token}
-    response = requests.get(url,params=data).json()
-    for video in response['videos']:
-        if video["state"] == "normal":
-            all_video_ids_byme.append(video["id"])
-
-    page = 1
-    while int(response['count'])*int(response['page']) < response['total']:
-        page = page + 1
-        params = {"client_id":youku_user_dict["youku_client_id"],
-                "access_token":access_token,
-                "page":page}
-        response = requests.get(url,params=params).json()
-        for video in response['videos']:
-            if video["state"] == "normal":
-                all_video_ids_byme.append(video["id"])
-    #check the one that is not on any list
-    all_video_ids_not_on_playlist = list()
-    for video_id in all_video_ids_byme:
-        if not video_id in playlist_video_ids:
-            all_video_ids_not_on_playlist.append(video_id)
-    #create a playlist for not catogarised videos
-    #first check if there is a playlist called uncategorized
-    uncategorized_exist = False
-    pdb.set_trace()
-    for playlist in playlists:
-        if playlist["name"] == "uncategorized":
-            uncategorized_exist = True
-            add_videos_to_playlists(youku_user_dict,all_video_ids_not_on_playlist,playlist["id"],access_token,refresh_token)
-            break
-    playlist_id = ""
-    if not uncategorized_exist:
-        playlist_id = create_playlist(youku_user_dict,"uncategorized","autocreated",access_token,refresh_token)    
-        add_videos_to_playlists(youku_user_dict,all_video_ids_not_on_playlist,playlist_id,access_token,refresh_token)
-        playlists.append({"id":playlist_id,"name":"uncategorized"})
-    return playlists
-
-def create_playlist(youku_user_dict,title,tags,access_token,refresh_token):
-    url = "https://openapi.youku.com/v2/playlists/create.json"
-    data = {"client_id":youku_user_dict["youku_client_id"],
-            "access_token":access_token,
-            "title":title,
-            "tags":tags}
-    response = requests.get(url,params=data).json()["id"]
-    return response
-
-def add_videos_to_playlists(youku_user_dict,video_ids,playlist_id,access_token,refresh_token):
-    url = "https://openapi.youku.com/v2/playlists/video/add.json"
-    data = {"client_id":youku_user_dict["youku_client_id"],
-            "access_token":access_token,
-            "playlist_id":playlist_id,
-            "video_ids":",".join(video_ids),}
-    response = requests.get(url,params=data).json()
-
-#get youku user video for each playlist
-#check each video if it is from youtube
-#--------------------------------------------
-def get_playlist_videos(youku_user_dict,playlist_id,access_token,refresh_token):
-    url = "https://openapi.youku.com/v2/playlists/videos.json"
-    data = {"client_id":youku_user_dict["youku_client_id"],
-            "playlist_id":playlist_id}
-    response = requests.get(url,params=data).json()
-    playlist_videos = list()
-    if "error" in response and str(response["error"]["code"]) == "120040101":
-        playlist_videos = playlist_videos + []
-    else:
-        playlist_videos = playlist_videos + response["videos"]
-        page =  1
-        while int(response['count'])*int(response['page']) < response['total']:
-            page = page + 1 
-            data["page"] = page
-            response = requests.get(url,params=data).json()
-            if "error" in response and str(response["error"]["code"]) == "120040101":
-                playlist_videos = playlist_videos + []
-            else:
-                playlist_videos = playlist_videos + response["videos"]
-    return playlist_videos
-#delete playlist and videos
-#----------------------------------------------
-def delete_videos(video_ids,playlist_ids,youku_user_dict,access_token,refresh_token):
-    #delete palylists without deleting videos in it
-    url = "https://openapi.youku.com/v2/playlists/destroy.json"
-    data = {"client_id":youku_user_dict["youku_client_id"],
-            "access_token": access_token,}
-    for playlist_id in playlist_ids:
-        data["playlist_id"] = playlist_id
-        response = requests.post(url,data=data).json()
-    #delete vidos
-    url = "https://openapi.youku.com/v2/videos/destroy.json"
-    data = {"client_id":youku_user_dict["youku_client_id"],
-            "access_token": access_token,}
-    deleted_video_ids = list()
-    for video_id in video_ids:
-        data["video_id"] = video_id
-        response = requests.post(url,data=data).json()
-        deleted_video_ids.append(response["id"])
-    return deleted_video_ids
