@@ -1,7 +1,9 @@
 # youtube2youku
 this programm is used to sync my subscriped youtube channel to youku
 
-Set paramters in the youtube2youku.config file first
+Configuration:
+    
+    Set paramters in the youtube2youku.config file first
 
 Commandline Tool:
 
