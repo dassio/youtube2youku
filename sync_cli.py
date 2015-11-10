@@ -225,7 +225,7 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
 if __name__ == '__main__':
     url  = sys.argv[1]
     pdb.set_trace()
-    url_query = urlparse.parse_qs(urlparse.urlparse(response).query)
+    url_query = urlparse.parse_qs(urlparse.urlparse(url).query)
     if "list" in url_query:
         sync_playlist([url_query["list"][0]],google_user_dict,youku_user_dict)
     sync_video(url,google_user_dict,youku_user_dict)
