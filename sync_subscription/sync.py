@@ -320,6 +320,7 @@ def delete_videos(video_ids,playlist_ids,youku_user_dict,access_token,refresh_to
     for video_id in video_ids:
         data["video_id"] = video_id
         response,code = make_request(url,data,"none","POST")
+        #if it is system error from youku we have to check if the video still exist to see if we successfully deleted it
         if code == "1002":deleted_video_ids.append(video_id)
         deleted_video_ids.append(response["id"])
     return deleted_video_ids
