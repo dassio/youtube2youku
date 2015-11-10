@@ -223,6 +223,10 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
                     video_item.save()
  
 if __name__ == '__main__':
-     #sync_video("https://www.youtube.com/watch?v=eNzenkoeJcY",google_user_dict,youku_user_dict)
-     sync_playlist(["PL689D6EE903ED5CB6"],google_user_dict,youku_user_dict)
+    url  = sys.argv[1]
+    pdb.set_trace()
+    url_query = urlparse.parse_qs(urlparse.urlparse(response).query)
+    if "list" in url_query:
+        sync_playlist([url_query["list"][0]],google_user_dict,youku_user_dict)
+    sync_video(url,google_user_dict,youku_user_dict)
 
