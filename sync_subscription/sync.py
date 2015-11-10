@@ -212,8 +212,7 @@ def get_playlist(youku_user_dict,access_token,refresh_token):
     url = "https://openapi.youku.com/v2/playlists/by_me.json"
     data = {"client_id" : youku_user_dict["youku_client_id"],
             "access_token" : access_token,}
-    response = requests.get(url,params=data).json()
-    playlists = response["playlists"]
+    playlists ,code = make_request(url,data,"playlists","GET")
     playlist_video_ids = list()
     for playlist in playlists:
         playlist["video_count"] = len(get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token))
@@ -221,45 +220,23 @@ def get_playlist(youku_user_dict,access_token,refresh_token):
         for video in videos:
             playlist_video_ids.append(video["id"])
     #get user all videos
+    #there are seven stated:normal,encoding,fail,in_review,blocked,limited(not on the document),none(not on the document)
     all_video_ids_byme = list()
     url = "https://openapi.youku.com/v2/videos/by_me.json"
-    data = {"client_id":youku_user_dict["youku_client_id"],
+    data ={"client_id":youku_user_dict["youku_client_id"],
             "access_token": access_token}
-    response = requests.get(url,params=data).json()
-    for video in response['videos']:
-        if video["state"] == "normal":
+    response ,code = make_request(url,data,"videos","GET")
+    for video in response:
+        if video["state"] != "none":
             all_video_ids_byme.append(video["id"])
-
-    page = 1
-    while int(response['count'])*int(response['page']) < response['total']:
-        page = page + 1
-        params = {"client_id":youku_user_dict["youku_client_id"],
-                "access_token":access_token,
-                "page":page}
-        response = requests.get(url,params=params).json()
-        for video in response['videos']:
-            if video["state"] == "normal":
-                all_video_ids_byme.append(video["id"])
-    #check the one that is not on any list
+   #check the one that is not on any list
     all_video_ids_not_on_playlist = list()
     for video_id in all_video_ids_byme:
         if not video_id in playlist_video_ids:
             all_video_ids_not_on_playlist.append(video_id)
-    #create a playlist for not catogarised videos
-    #first check if there is a playlist called uncategorized
-    uncategorized_exist = False
-    pdb.set_trace()
-    for playlist in playlists:
-        if playlist["name"] == "uncategorized":
-            uncategorized_exist = True
-            add_videos_to_playlists(youku_user_dict,all_video_ids_not_on_playlist,playlist["id"],access_token,refresh_token)
-            break
-    playlist_id = ""
-    if not uncategorized_exist:
-        playlist_id = create_playlist(youku_user_dict,"uncategorized","autocreated",access_token,refresh_token)    
-        add_videos_to_playlists(youku_user_dict,all_video_ids_not_on_playlist,playlist_id,access_token,refresh_token)
-        playlists.append({"id":playlist_id,"name":"uncategorized"})
-    return playlists
+    #store videos that are not in any playlist in session
+    playlists.append({"id":"uncategorized","name":"uncategorized","video_count":len(all_video_ids_not_on_playlist)})
+    return playlists,all_video_ids_not_on_playlist
 
 def create_playlist(youku_user_dict,title,tags,access_token,refresh_token):
     url = "https://openapi.youku.com/v2/playlists/create.json"
@@ -267,7 +244,7 @@ def create_playlist(youku_user_dict,title,tags,access_token,refresh_token):
             "access_token":access_token,
             "title":title,
             "tags":tags}
-    response = requests.get(url,params=data).json()["id"]
+    response ,code = make_request(url,data,"none","GET")["id"]
     return response
 
 def add_videos_to_playlists(youku_user_dict,video_ids,playlist_id,access_token,refresh_token):
@@ -276,7 +253,7 @@ def add_videos_to_playlists(youku_user_dict,video_ids,playlist_id,access_token,r
             "access_token":access_token,
             "playlist_id":playlist_id,
             "video_ids":",".join(video_ids),}
-    response = requests.get(url,params=data).json()
+    response ,code = make_request(url,data,"none","GET")
 
 #get youku user video for each playlist
 #check each video if it is from youtube
@@ -285,22 +262,46 @@ def get_playlist_videos(youku_user_dict,playlist_id,access_token,refresh_token):
     url = "https://openapi.youku.com/v2/playlists/videos.json"
     data = {"client_id":youku_user_dict["youku_client_id"],
             "playlist_id":playlist_id}
-    response = requests.get(url,params=data).json()
-    playlist_videos = list()
-    if "error" in response and str(response["error"]["code"]) == "120040101":
-        playlist_videos = playlist_videos + []
-    else:
-        playlist_videos = playlist_videos + response["videos"]
-        page =  1
-        while int(response['count'])*int(response['page']) < response['total']:
-            page = page + 1 
+    videos  ,code = make_request(url,data,"videos","GET")
+    return videos 
+
+
+#get videos by video_ids
+#-----------------------------------------
+def get_videos(youku_user_dict,video_ids,access_token,rfresh_token):
+    url =  "https://openapi.youku.com/v2/videos/show_basic_batch.json"
+    data = {"client_id":youku_user_dict["youku_client_id"],
+            "video_ids":video_ids}
+    response ,code = make_request(url,data,"videos","GET")
+    return response
+
+def make_request(url,data,data_name,method):
+    if method == "GET":
+        response = requests.get(url,params=data).json()
+    if method == "POST":
+        response = requests.post(url,data=data).json()
+    if 'error' in response and str(response['error']["code"]) == "120040101":
+        return response,response["code"]
+    if 'error' in response:return response,response["code"]
+    if "page" in response:
+        response_data = list()
+        response_data = response[data_name]
+        page = 1 
+        while int(response['count'])*int(response['page']) < int(response['total']):
+            page = page + 1
             data["page"] = page
-            response = requests.get(url,params=data).json()
-            if "error" in response and str(response["error"]["code"]) == "120040101":
-                playlist_videos = playlist_videos + []
-            else:
-                playlist_videos = playlist_videos + response["videos"]
-    return playlist_videos
+            if method == "GET":
+                response = requests.get(url,params=data).json()
+            if method == "POST":
+                response = requests.post(url,data=data).json()
+            if 'error' in response and str(response['error']["code"]) == "120040101":
+                return response_data
+            if 'error' in response:return response,response["code"]
+            response_data = response_data + response[data_name]
+        return response_data,"OK"
+    if data_name == "none":
+        return response,"OK"
+    return response[data_name],"OK"
 #delete playlist and videos
 #----------------------------------------------
 def delete_videos(video_ids,playlist_ids,youku_user_dict,access_token,refresh_token):
@@ -310,7 +311,7 @@ def delete_videos(video_ids,playlist_ids,youku_user_dict,access_token,refresh_to
             "access_token": access_token,}
     for playlist_id in playlist_ids:
         data["playlist_id"] = playlist_id
-        response = requests.post(url,data=data).json()
+        response,code = make_request(url,data,"none","GET")
     #delete vidos
     url = "https://openapi.youku.com/v2/videos/destroy.json"
     data = {"client_id":youku_user_dict["youku_client_id"],
@@ -318,6 +319,7 @@ def delete_videos(video_ids,playlist_ids,youku_user_dict,access_token,refresh_to
     deleted_video_ids = list()
     for video_id in video_ids:
         data["video_id"] = video_id
-        response = requests.post(url,data=data).json()
+        response,code = make_request(url,data,"none","POST")
+        if code == "1002":deleted_video_ids.append(video_id)
         deleted_video_ids.append(response["id"])
     return deleted_video_ids

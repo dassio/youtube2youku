@@ -35,8 +35,8 @@ def check_youku_existing_youtube_video(request):
     if not "access_token" in request.session:
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)
 
-    playlists = sync.get_playlist(sync.youku_user_dict,request.session["access_token"],request.session["refresh_token"])
-
+    playlists,uncategorized_videos = sync.get_playlist(sync.youku_user_dict,request.session["access_token"],request.session["refresh_token"])
+    request.session["uncategorized_videos"] = ",".join(uncategorized_videos)
     response = {"playlists": playlists}
     data = json.dumps(response)
 
@@ -45,6 +45,10 @@ def check_youku_existing_youtube_video(request):
 #get youku video for each playlist
 def get_youku_videos(request):
     playlist_id = request.GET["playlist_id"]
+    if playlist_id == "uncategorized":
+        videos = sync.get_videos(sync.youku_user_dict,request.session["uncategorized_videos"],request.session["access_token"],request.session["refresh_token"])
+        response = {"videos":videos}
+        return HttpResponse(json.dumps(response),content_type='application/json')
     if not "access_token" in request.session:
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)
     videos = sync.get_playlist_videos(sync.youku_user_dict,playlist_id,request.session["access_token"],request.session["refresh_token"])
@@ -59,4 +63,4 @@ def delete_videos(request):
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)    
     deleted_video_ids = sync.delete_videos(video_ids,playlist_ids,sync.youku_user_dict,request.session["access_token"],request.session["refresh_token"])
     if len(deleted_video_ids) == len(video_ids):
-        return HttpResponse({"result":"success"},content_type='application/json')
+        return HttpResponse(json.dumps({"result":"success"}),content_type='application/json')
