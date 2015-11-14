@@ -13,7 +13,11 @@
 <style type="text/css">
     #youku_videos {width:600px}
     #compare_videos{float:left}
-    #youtube_search{float:left}
+    #youtube_search{float:left;width:600px}
+    .youtube_search_results li a{float:left}
+    .youtube_search_results li {display:block}
+    .youtube_search_results li button{margin-top:25px;margin-left:10px}
+    .clear_div{clear:both}
 </style>
 
 <script>
@@ -114,16 +118,29 @@
         event.preventDefault();
         var query = $("#search_youtube input:first").val();
         var search_type = $("#search_youtube input:checked").val();
+        if($(this).attr("id") == "get_more_results"){
+            var data = {"query":query,"search_type":search_type,"result_more":"hello"};
+        }else{
+            var data = {"query":query,"search_type":search_type};
+        }
         $.ajax({
             url: "{% url "sync:search_youtube_channel" %}",
             type: "GET",
-            data: {"query":query,"search_type":search_type},
+            data: data,
             datatype:"json",
             success: function(json){
                 channels = json.channels;
-                $.each(channels,function(index,item){
-                    
-                });
+                $.each(channels,function(index,channel){
+                    channel = channel.snippet;
+                    var discription_channel_id = "description" + channel.channelId;
+                    if(index == 0){
+                        var list_item = $("<li class='list-item' id='"+channel.channelId+"'><div class='header'><a data-toggle='collapse' href='#"+discription_channel_id+"'><h3>"+channel.title+"</h3></a><button>Synchronize To Youku</button></div><div class='clear_div'></div><div class='collapse in' id='"+discription_channel_id+"'>"+channel.description+"</div></li>")
+                    }else{
+                    var list_item = $("<li class='list-item' id='"+channel.channelId+"'><div class='header'><a data-toggle='collapse' href='#"+discription_channel_id+"'><h3>"+channel.title+"</h3></a><button>Synchronize To Youku</button></div><div class='clear_div'></div><div class='collapse' id='"+discription_channel_id+"'>"+channel.description+"</div></li>")
+                    }
+                    $(".youtube_search_results").append(list_item);
+
+                }); 
             },
         })
 
@@ -153,6 +170,7 @@
             }); 
         });
         $("#search_youtube").submit(search_youtube_video_channel);
+        $(".search_youtube").bind("click",search_youtube_video_channel);
     });
 </script>
 <body>
@@ -172,10 +190,9 @@
             <label><input type="radio" name="search_type" id="video" value="video"/>Videos</label>
             <input type="submit"/>
         </form> 
-        <div class='panel-group' id='youtube_channels__videos' role='tablist' aria-multiselectable='true'>
-            <ul class="list-group">
-            </ul><!-- list-group -->
-        </div>
+        <ul class="list-group youtube_search_results">
+        </ul><!-- list-group -->
+        <button id="get_more_results">Get More Reuslts</button>
     </div><!-- y outube search -->
 </div>
 </body>
