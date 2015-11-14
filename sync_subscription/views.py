@@ -34,12 +34,9 @@ def index(request):
 def check_youku_existing_youtube_video(request):
     if not "access_token" in request.session:
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)
-
-    playlists,uncategorized_videos = sync.get_playlist(sync.youku_user_dict,request.session["access_token"],request.session["refresh_token"])
-    request.session["uncategorized_videos"] = ",".join(uncategorized_videos)
+    playlists= sync.get_playlist(sync.youku_user_dict,request.session["access_token"],request.session["refresh_token"])
     response = {"playlists": playlists}
     data = json.dumps(response)
-
     return HttpResponse(data,content_type='application/json')
 
 #get youku video for each playlist
@@ -56,7 +53,6 @@ def get_youku_videos(request):
     return HttpResponse(json.dumps(response),content_type='application/json')
 #delete videos
 def delete_videos(request):
-    pdb.set_trace()
     video_ids = request.POST.getlist("video_ids[]")
     playlist_ids = request.POST.getlist("playlist_ids[]")
     if not "access_token" in request.session:
@@ -64,3 +60,19 @@ def delete_videos(request):
     deleted_video_ids = sync.delete_videos(video_ids,playlist_ids,sync.youku_user_dict,request.session["access_token"],request.session["refresh_token"])
     if len(deleted_video_ids) == len(video_ids):
         return HttpResponse(json.dumps({"result":"success"}),content_type='application/json')
+
+def search_youtube_channel(request):
+    query = request.GET["query"]
+    search_type = request.GET["search_type"]
+    if "result_more" in request.GET:
+        channels,next_page_token = sync.youtube_search(query,search_type,request.session["next_page_token"],sync.google_user_dict) 
+        if next_page_token != "none":
+            request.session["next_page_token"] = next_page_token
+            return HttpResponse(json.dumps({"channels":channels}),content_type='application/json')
+        else:
+            return HttpResponse(json.dumps({"result":"no_more_results"}),content_type='application/json')
+    else:
+        channels,next_page_token = sync.youtube_search(query,search_type,"none",sync.google_user_dict)
+        request.session["next_page_token"] = next_page_token
+        return HttpResponse(json.dumps({"channels":channels}),content_type='application/json')
+

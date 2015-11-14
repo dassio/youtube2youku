@@ -12,7 +12,8 @@
 
 <style type="text/css">
     #youku_videos {width:600px}
-
+    #compare_videos{float:left}
+    #youtube_search{float:left}
 </style>
 
 <script>
@@ -26,11 +27,12 @@
             success: function(json){
                 var videos = json.videos;
                 text = $("<ul class='list-group'></ul>");
-                $("."+playlist_id).append(text)
+                $("."+playlist_id).append(text);
+                $("."+playlist_id).parent().parent().find(".badge").html(video.length);
                 $.each(videos,function(index,video){
-                    var video_id = video.id
-                    var video_info = $("<li class='list-group-item'><div class='checkbox'><label><input type='checkbox' id='"+ video_id + "'class='checkbox video_chkbox' value='" + video_id + "'>"+ video.title +"</label></div></li>")
-                    $("."+playlist_id + ">.list-group").append(video_info)
+                    var video_id = video.id;
+                    var video_info = $("<li class='list-group-item'><div class='checkbox'><label><input type='checkbox' id='"+ video_id + "'class='checkbox video_chkbox' value='" + video_id + "'>"+ video.title +"</label></div></li>");
+                    $("."+playlist_id + ">.list-group").append(video_info);
                 });
             } 
         });
@@ -50,17 +52,16 @@
                     var playlist_name = item.name;
                     var playlist_id = item.id;
                     var playlist_video_number = item.video_count;
-                    panel.find(".panel-title").append($("<div class='checkbox'><label><input type='checkbox' class='playlist_chkbox' value='"+playlist_id+"'/><a  data-toggle='collapse' data-parent='#youku_vidoes' href='#collapseThree'>"+playlist_name + "(" + playlist_video_number + ")</a></label></div>"));
+                    panel.find(".panel-title").append($("<div class='checkbox'><label><input type='checkbox' class='playlist_chkbox' value='"+playlist_id+"'/><a  data-toggle='collapse' data-parent='#youku_videos' href='#collapseThree'>"+playlist_name + "<span class='badge'>"+playlist_video_number + "</span></a></label></div>"));
                     panel.find(".panel-body").attr("class","panel-body "+playlist_id);
                     panel.find(".panel-body").parent().attr("id","collapse"+index);
                     panel.find("a").attr("href","#collapse"+index);
-                    $(".panel-group").append(panel); 
+                    $("#youku_videos").append(panel); 
                     get_youku_videos(playlist_id);
                 });
             },
         });
     }
-
 
     function getCookie(name) {
         var cookieValue = null;
@@ -77,8 +78,8 @@
         }
         return cookieValue;
     }
+
     function delete_videos_playlists(event){
-        var lastChecked = null;
         var chkboxes = $('.video_chkbox, .playlist_chkbox');
         var video_ids = []
         var playlist_ids = []
@@ -89,25 +90,44 @@
                 video_ids.push(chkbox.value)
             }
         });
-        var csrftoken = getCookie('csrftoken');
-
+        var csrftoken = getCookie('csrftoken'); 
         $.ajax({
-            url: "{% url "sync:delete_youku_videos" %}",
+            url:  "{% url "sync:delete_youku_videos" %}",
             type: "POST",
             data: {"video_ids[]":video_ids,"playlist_ids[]":playlist_ids},
             datatype: "json",
             beforeSend: function(xhr, settings) {
-                if (!this.crossDomain) {
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                 if (!this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 }
             },
             success: function(json){
                 check_existing_youtube_videos()
                 $("#action_result").html("you have successfully delete the videos").css({"position":"absolute", "height": "200px","width": "400px","margin": "-100px 0 0 -200px","top": "50%","left": "50%"}).show("blind",500,function(){
                     setTimeout(function(){ $("#action_result").hide("highlight",500)},1000);
-                });
+                 });
             },
         });
+    }
+
+    function search_youtube_video_channel(event){
+        event.preventDefault();
+        var query = $("#search_youtube input:first").val();
+        var search_type = $("#search_youtube input:checked").val();
+        $.ajax({
+            url: "{% url "sync:search_youtube_channel" %}",
+            type: "GET",
+            data: {"query":query,"search_type":search_type},
+            datatype:"json",
+            success: function(json){
+                channels = json.channels;
+                $.each(channels,function(index,item){
+                    
+                });
+            },
+        })
+
+ 
     }
     $(document).ready(function(){
         $("#check_existing_youtube_videos").bind("click",check_existing_youtube_videos);
@@ -132,18 +152,30 @@
                 lastChecked = this;
             }); 
         });
+        $("#search_youtube").submit(search_youtube_video_channel);
     });
 </script>
 <body>
     <div id="compare_videos">
         <div class="video_edit">
-                <button id="check_existing_youtube_videos" type="button">check existing youtube vides</button>
-                <button id="delete_videos_playlists" type="button">delete</button>
+            <button id="check_existing_youtube_videos" type="button">check existing youtube vides</button>
+            <button id="delete_videos_playlists" type="button">delete</button>
         </div>
         <div class='panel-group' id='youku_videos' role='tablist' aria-multiselectable='true'>
         </div><!-- panel group-->
         <div id="action_result"></div>
     </div><!-- compare_videos -->
-
+    <div id="youtube_search">
+        <form id="search_youtube" action="{% url "sync:search_youtube_channel" %}" method="get">
+            <input type="text" name="channel_query"/>
+            <label><input type="radio" name="search_type" id="channel" value="channel" checked/>Channels</label>
+            <label><input type="radio" name="search_type" id="video" value="video"/>Videos</label>
+            <input type="submit"/>
+        </form> 
+        <div class='panel-group' id='youtube_channels__videos' role='tablist' aria-multiselectable='true'>
+            <ul class="list-group">
+            </ul><!-- list-group -->
+        </div>
+    </div><!-- y outube search -->
 </div>
 </body>
