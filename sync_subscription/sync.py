@@ -4,7 +4,6 @@ from youtube_dl import YoutubeDL
 from youku.youku_upload import YoukuUpload
 #google python sdk : pip install --upgrade google-api-python-client
 from apiclient.discovery import build
-
 from django.contrib.sessions.backends.db import SessionStore
 
 import urllib2
@@ -335,4 +334,27 @@ def youtube_search(query,search_type,next_page_token,google_user_dict):
             return  response["items"],response["nextPageToken"]
         else:
             return response["items"],"none"
- 
+
+
+def get_channel_video_number(channel_id,published_after,google_user_dict):
+    google_api_key = google_user_dict["google_api_key"]
+    service = build("youtube","v3",developerKey=google_api_key)
+    video_number = 0 
+    response = service.search().list(part="snippet",fields="items/kind,nextPageToken",channelId=channel_id,publishedAfter=published_after,type="video").execute()
+    video_number = video_number + len(response["items"])
+    while "nextPageToken" in response:
+        response = service.search().list(part="snippet",fields="items/kind,nextPageToken",channelId=channel_id,pageToken=response["nextPageToken"],publishedAfter=published_after,type="video").execute()
+        video_number = video_number + len(response["items"])
+    return video_number;
+
+def get_channel_videos(channel_id,published_after,google_user_dict):
+    google_api_key = google_user_dict["google_api_key"]
+    service = build("youtube","v3",developerKey=google_api_key)
+    response = service.search().list(part="snippet",fields="items(id,snippet),nextPageToken",publishedAfter=published_after,channelId=channel_id,type="video").execute()
+    videos =  response["items"]
+    while "nextPageToken" in response:
+        response = service.search().list(pageToken=response["nextPageToken"],part="snippet",fields="items/id,nextPageToken",channelId=channel_id,publishedAfter=published_after,type="video").execute()
+        videos = videos + response["items"]
+    return videos
+
+

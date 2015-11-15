@@ -107,3 +107,9 @@ USE_TZ = True
 STATIC_URL = '/static/'
 WEBSOCKET_URL = '/ws/'
 WSGI_APPLICATION = 'ws4redis.django_runserver.application'
+WS4REDIS_HEARTBEAT = '--heartbeat--'
+
+BROKER_URL = "redis://localhost"
+CELERY_RESULT_BACKEND = "redis://localhost"
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
