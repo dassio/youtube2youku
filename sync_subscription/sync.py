@@ -4,7 +4,6 @@ from youtube_dl import YoutubeDL
 from youku.youku_upload import YoukuUpload
 #google python sdk : pip install --upgrade google-api-python-client
 from apiclient.discovery import build
-
 from django.contrib.sessions.backends.db import SessionStore
 
 import urllib2
@@ -208,35 +207,13 @@ def sync_playlist(play_lists,google_user_dict,youku_user_dict):
 #get youku user playlists
 #----------------------------------------
 def get_playlist(youku_user_dict,access_token,refresh_token):
-    #get all playlist and video in the playlists
     url = "https://openapi.youku.com/v2/playlists/by_me.json"
     data = {"client_id" : youku_user_dict["youku_client_id"],
             "access_token" : access_token,}
     playlists ,code = make_request(url,data,"playlists","GET")
-    playlist_video_ids = list()
-    for playlist in playlists:
-        playlist["video_count"] = len(get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token))
-        videos = get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token)
-        for video in videos:
-            playlist_video_ids.append(video["id"])
-    #get user all videos
-    #there are seven stated:normal,encoding,fail,in_review,blocked,limited(not on the document),none(not on the document)
-    all_video_ids_byme = list()
-    url = "https://openapi.youku.com/v2/videos/by_me.json"
-    data ={"client_id":youku_user_dict["youku_client_id"],
-            "access_token": access_token}
-    response ,code = make_request(url,data,"videos","GET")
-    for video in response:
-        if video["state"] != "none":
-            all_video_ids_byme.append(video["id"])
-   #check the one that is not on any list
-    all_video_ids_not_on_playlist = list()
-    for video_id in all_video_ids_byme:
-        if not video_id in playlist_video_ids:
-            all_video_ids_not_on_playlist.append(video_id)
     #store videos that are not in any playlist in session
-    playlists.append({"id":"uncategorized","name":"uncategorized","video_count":len(all_video_ids_not_on_playlist)})
-    return playlists,all_video_ids_not_on_playlist
+    playlists.append({"id":"uncategorized","name":"uncategorized","video_count":"0"})
+    return playlists
 
 def create_playlist(youku_user_dict,title,tags,access_token,refresh_token):
     url = "https://openapi.youku.com/v2/playlists/create.json"
@@ -259,11 +236,27 @@ def add_videos_to_playlists(youku_user_dict,video_ids,playlist_id,access_token,r
 #check each video if it is from youtube
 #--------------------------------------------
 def get_playlist_videos(youku_user_dict,playlist_id,access_token,refresh_token):
-    url = "https://openapi.youku.com/v2/playlists/videos.json"
-    data = {"client_id":youku_user_dict["youku_client_id"],
-            "playlist_id":playlist_id}
-    videos  ,code = make_request(url,data,"videos","GET")
-    return videos 
+    if playlist_id == "uncategorized":
+        playlist_video_ids = list()
+        for playlist in playlists:
+            videos = get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token)
+            playlist["video_count"] = len(videos)
+            playlist_video_ids = playlist_video_ids + videos
+        #get user all videos
+        #there are seven stated:normal,encoding,fail,in_review,blocked,limited(not on the document),none(not on the document)
+        url = "https://openapi.youku.com/v2/videos/by_me.json"
+        data ={"client_id":youku_user_dict["youku_client_id"],
+                "access_token": access_token}
+        response ,code = make_request(url,data,"videos","GET")
+        all_video_ids_byme = [ video["id"] for video in response if video["state"] != "none"]    
+        all_video_ids_not_on_playlist = [video_id for video_id in all_video_ids_byme if video_id not in playlist_video_ids]
+        return all_video_ids_not_on_playlist
+    else:
+        url = "https://openapi.youku.com/v2/playlists/videos.json"
+        data = {"client_id":youku_user_dict["youku_client_id"],
+                "playlist_id":playlist_id}
+        videos  ,code = make_request(url,data,"videos","GET")
+        return videos 
 
 
 #get videos by video_ids
@@ -272,7 +265,7 @@ def get_videos(youku_user_dict,video_ids,access_token,rfresh_token):
     url =  "https://openapi.youku.com/v2/videos/show_basic_batch.json"
     data = {"client_id":youku_user_dict["youku_client_id"],
             "video_ids":video_ids}
-    response ,code = make_request(url,data,"videos","GET")
+    response,code = make_request(url,data,"videos","GET")
     return response
 
 def make_request(url,data,data_name,method):
@@ -320,6 +313,48 @@ def delete_videos(video_ids,playlist_ids,youku_user_dict,access_token,refresh_to
     for video_id in video_ids:
         data["video_id"] = video_id
         response,code = make_request(url,data,"none","POST")
+        #if it is system error from youku we have to check if the video still exist to see if we successfully deleted it
         if code == "1002":deleted_video_ids.append(video_id)
         deleted_video_ids.append(response["id"])
     return deleted_video_ids
+
+
+def youtube_search(query,search_type,next_page_token,google_user_dict):
+    google_api_key = google_user_dict["google_api_key"]
+    service = build("youtube","v3",developerKey=google_api_key)
+    if next_page_token == "none":
+        response = service.search().list(q=query,type=search_type,part="snippet",fields="items/snippet,nextPageToken",maxResults="10").execute()
+        if "nextPageToken" in response:
+            return response["items"],response["nextPageToken"]
+        else:
+            return response["items"],"none"
+    else:
+        response = service.search().list(q=query,type=search_type,part="snippet",fields="items/snippet,nextPageToken",pageToken=next_page_token,maxResults="10").execute()
+        if "nextPageToken" in response:
+            return  response["items"],response["nextPageToken"]
+        else:
+            return response["items"],"none"
+
+
+def get_channel_video_number(channel_id,published_after,google_user_dict):
+    google_api_key = google_user_dict["google_api_key"]
+    service = build("youtube","v3",developerKey=google_api_key)
+    video_number = 0 
+    response = service.search().list(part="snippet",fields="items/kind,nextPageToken",channelId=channel_id,publishedAfter=published_after,type="video").execute()
+    video_number = video_number + len(response["items"])
+    while "nextPageToken" in response:
+        response = service.search().list(part="snippet",fields="items/kind,nextPageToken",channelId=channel_id,pageToken=response["nextPageToken"],publishedAfter=published_after,type="video").execute()
+        video_number = video_number + len(response["items"])
+    return video_number;
+
+def get_channel_videos(channel_id,published_after,google_user_dict):
+    google_api_key = google_user_dict["google_api_key"]
+    service = build("youtube","v3",developerKey=google_api_key)
+    response = service.search().list(part="snippet",fields="items(id,snippet),nextPageToken",publishedAfter=published_after,channelId=channel_id,type="video").execute()
+    videos =  response["items"]
+    while "nextPageToken" in response:
+        response = service.search().list(pageToken=response["nextPageToken"],part="snippet",fields="items/id,nextPageToken",channelId=channel_id,publishedAfter=published_after,type="video").execute()
+        videos = videos + response["items"]
+    return videos
+
+

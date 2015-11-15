@@ -38,6 +38,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'sync_subscription',
+    'ws4redis',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -80,8 +81,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'youtube_videos',
         'HOST': '/opt/local/var/run/mariadb-10.0/mysqld.sock',
-        'USER': '',
-        'PASSWORD': '',
+        'USER': 'danny',
+        'PASSWORD': 'danny17b603',
     }
 }
 
@@ -104,3 +105,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 
 STATIC_URL = '/static/'
+WEBSOCKET_URL = '/ws/'
+WSGI_APPLICATION = 'ws4redis.django_runserver.application'
+WS4REDIS_HEARTBEAT = '--heartbeat--'
+
+BROKER_URL = "redis://localhost"
+CELERY_RESULT_BACKEND = "redis://localhost"
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
