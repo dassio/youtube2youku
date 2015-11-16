@@ -235,18 +235,19 @@ def add_videos_to_playlists(youku_user_dict,video_ids,playlist_id,access_token,r
 #get youku user video for each playlist
 #check each video if it is from youtube
 #--------------------------------------------
-def get_playlist_videos(youku_user_dict,playlist_id,access_token,refresh_token):
+def get_playlist_videos(youku_user_dict,playlist_id,access_token,refresh_token,playlists):
     if playlist_id == "uncategorized":
         playlist_video_ids = list()
         for playlist in playlists:
-            videos = get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token)
-            playlist["video_count"] = len(videos)
-            playlist_video_ids = playlist_video_ids + videos
+            if playlist["id"] != "uncategorized":
+                videos = get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token,playlists)
+                playlist_video_ids = playlist_video_ids + videos
         #get user all videos
         #there are seven stated:normal,encoding,fail,in_review,blocked,limited(not on the document),none(not on the document)
         url = "https://openapi.youku.com/v2/videos/by_me.json"
         data ={"client_id":youku_user_dict["youku_client_id"],
                 "access_token": access_token}
+        pdb.set_trace()
         response ,code = make_request(url,data,"videos","GET")
         all_video_ids_byme = [ video["id"] for video in response if video["state"] != "none"]    
         all_video_ids_not_on_playlist = [video_id for video_id in all_video_ids_byme if video_id not in playlist_video_ids]

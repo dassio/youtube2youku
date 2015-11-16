@@ -2,7 +2,7 @@
 
 doc: http://open.youku.com/docs/doc?id=110
 """
-
+import pdb
 import os
 import requests
 import json
@@ -311,6 +311,7 @@ class YoukuUpload(object):
            Returns:
                 return video_id if upload successfully
         """
+        pdb.set_trace()
         redis_publisher = RedisPublisher(facility='uploading', broadcast=True)
         if self.upload_token is not None:
             # resume upload
@@ -322,7 +323,7 @@ class YoukuUpload(object):
                 write_string(unicode("start uploading to youku\n"))
                 while self.slice_task_id != 0:
                     self.upload_slice()
-                    uploading_status = RedisMessage(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"), out=None, encoding="UTF-8")
+                    uploading_status = RedisMessage("hello from youku")
                     redis_publisher.publish_message(uploading_status)
                 write_string(unicode("upoading complete\n"))
                 return self.commit()
@@ -334,7 +335,8 @@ class YoukuUpload(object):
             write_string(unicode("start uploading to youku\n"))
             while self.slice_task_id != 0:
                 self.upload_slice()
-	        uploading_status = RedisMessage(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"), out=None, encoding="UTF-8")
+                pdb.set_trace()
+	        uploading_status = RedisMessage("hello from youku")
                 redis_publisher.publish_message(uploading_status)
             write_string(unicode("uploading complete\n"))
             return self.commit()

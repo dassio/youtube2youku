@@ -9,6 +9,8 @@ import json
 import hashlib
 import logging
 import socket
+from ws4redis.redis_store import RedisMessage
+from ws4redis.publisher import RedisPublisher
 from time import sleep
 from util import check_error, YoukuError
 
@@ -309,6 +311,7 @@ class YoukuUpload(object):
            Returns:
                 return video_id if upload successfully
         """
+        redis_publisher = RedisPublisher(facility='uploading', broadcast=True)
         if self.upload_token is not None:
             # resume upload
             status = self.check()
@@ -319,8 +322,8 @@ class YoukuUpload(object):
                 write_string(unicode("start uploading to youku\n"))
                 while self.slice_task_id != 0:
                     self.upload_slice()
-                    write_string(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"), out=None, encoding="UTF-8")
-                write_string(unicode("upoading complete\n"))
+                    uploading_status = RedisMessage(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"))
+                    redis_publisher.publish_message(uploading_status)
                 return self.commit()
         else:
             # new upload
@@ -330,6 +333,6 @@ class YoukuUpload(object):
             write_string(unicode("start uploading to youku\n"))
             while self.slice_task_id != 0:
                 self.upload_slice()
-	        write_string(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"), out=None, encoding="UTF-8")
-            write_string(unicode("uploading complete\n"))
+	        uploading_status = RedisMessage(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"))
+                redis_publisher.publish_message(uploading_status)
             return self.commit()

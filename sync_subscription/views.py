@@ -43,19 +43,17 @@ def check_youku_existing_youtube_video(request):
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)
     playlists= sync.get_playlist(sync.youku_user_dict,request.session["access_token"],request.session["refresh_token"])
     response = {"playlists": playlists}
+    request.session["playlists"] = playlists
     data = json.dumps(response)
     return HttpResponse(data,content_type='application/json')
 
 #get youku video for each playlist
 def get_youku_videos(request):
     playlist_id = request.GET["playlist_id"]
-    if playlist_id == "uncategorized":
-        videos = sync.get_videos(sync.youku_user_dict,request.session["uncategorized_videos"],request.session["access_token"],request.session["refresh_token"])
-        response = {"videos":videos}
-        return HttpResponse(json.dumps(response),content_type='application/json')
     if not "access_token" in request.session:
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)
-    videos = sync.get_playlist_videos(sync.youku_user_dict,playlist_id,request.session["access_token"],request.session["refresh_token"])
+    pdb.set_trace()
+    videos = sync.get_playlist_videos(sync.youku_user_dict,playlist_id,request.session["access_token"],request.session["refresh_token"],request.session["playlists"])
     response = {"videos":videos}
     return HttpResponse(json.dumps(response),content_type='application/json')
 #delete videos
@@ -98,8 +96,9 @@ def sync_channel(request):
     published_after = request.POST["published_after"]
     sync_playlist_bool = request.POST["sync_playlist_bool"]
     videos = sync.get_channel_videos(channel_id,published_after,sync.google_user_dict)
-
-    pdb.set_trace()    
+    #redis_publisher = RedisPublisher(facility='uploading', broadcast=True)
+    #uploading_status = RedisMessage("hello")
+    #redis_publisher.publish_message(uploading_status)
     videos_trunked = trunks(videos,10) #split video_ids into 10 length trunk 
     for videos_trunk in videos_trunked:
        sync_channel_videos.delay(videos_trunk,sync.youku_user_dict,sync.google_user_dict,request.session["access_token"],request.session["refresh_token"])

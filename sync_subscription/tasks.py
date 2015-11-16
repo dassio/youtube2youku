@@ -11,7 +11,6 @@ from .models import Video,Token
 import urllib2
 import urllib
 import urlparse
-import pdb
 import codecs
 import re
 import io
@@ -50,6 +49,7 @@ def upload_video(video_info,access_token,youku_client_id):
 
     youku = YoukuUpload(youku_client_id,access_token,file_name)
     params = youku.prepare_video_params(title,tags,discription,'reproduced')
+    pdb.set_trace()
     try:
         if os.path.isfile(file_name + ".upload"):
             youku._read_upload_state_from_file()

@@ -80,7 +80,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'youtube_videos',
-        'HOST': '/opt/local/var/run/mariadb-10.0/mysqld.sock',
+        'HOST': '/var/lib/mysql/mysql.sock',
         'USER': 'danny',
         'PASSWORD': 'danny17b603',
     }
@@ -113,3 +113,4 @@ BROKER_URL = "redis://localhost"
 CELERY_RESULT_BACKEND = "redis://localhost"
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ALWAYS_EAGER = True

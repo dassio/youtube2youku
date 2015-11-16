@@ -179,9 +179,7 @@
                 datatype:"json",
                 method:"POST",
                 beforeSend: function(xhr, settings) {
-                    if (!this.crossDomain) {
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                    }
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
                 },
                 success: function(json){
                     //add channel as a playlist
@@ -255,6 +253,7 @@
 </head>
 
 <body>
+{% csrf_token %}
     <div class="page_header">
     </div>
     <div class="page_content">
