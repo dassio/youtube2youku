@@ -80,7 +80,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'youtube_videos',
-        'HOST': '/var/lib/mysql/mysql.sock',
+        'HOST': '/opt/local/var/run/mariadb-10.0/mysqld.sock',
         'USER': 'danny',
         'PASSWORD': 'danny17b603',
     }

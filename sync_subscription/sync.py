@@ -6,18 +6,10 @@ from youku.youku_upload import YoukuUpload
 from apiclient.discovery import build
 from django.contrib.sessions.backends.db import SessionStore
 
-import urllib2
-import urllib
 import urlparse
-import pdb
-import codecs
 import re
-import io
 import os
-import random
-import shlex
 import sys
-import json
 import pdb
 import requests
 
@@ -237,21 +229,21 @@ def add_videos_to_playlists(youku_user_dict,video_ids,playlist_id,access_token,r
 #--------------------------------------------
 def get_playlist_videos(youku_user_dict,playlist_id,access_token,refresh_token,playlists):
     if playlist_id == "uncategorized":
-        playlist_video_ids = list()
+        playlist_videos = list()
         for playlist in playlists:
             if playlist["id"] != "uncategorized":
                 videos = get_playlist_videos(youku_user_dict,playlist["id"],access_token,refresh_token,playlists)
-                playlist_video_ids = playlist_video_ids + videos
+                playlist_videos = playlist_videos + videos
         #get user all videos
         #there are seven stated:normal,encoding,fail,in_review,blocked,limited(not on the document),none(not on the document)
+        #limited: deleted
         url = "https://openapi.youku.com/v2/videos/by_me.json"
         data ={"client_id":youku_user_dict["youku_client_id"],
                 "access_token": access_token}
-        pdb.set_trace()
         response ,code = make_request(url,data,"videos","GET")
-        all_video_ids_byme = [ video["id"] for video in response if video["state"] != "none"]    
-        all_video_ids_not_on_playlist = [video_id for video_id in all_video_ids_byme if video_id not in playlist_video_ids]
-        return all_video_ids_not_on_playlist
+        all_videos_byme = [ video for video in response if video["state"] != "none" and video["state"] != "limited"]    
+        all_videos_not_on_playlist = [video for video in all_videos_byme if video not in playlist_videos]
+        return all_videos_not_on_playlist
     else:
         url = "https://openapi.youku.com/v2/playlists/videos.json"
         data = {"client_id":youku_user_dict["youku_client_id"],
@@ -275,10 +267,10 @@ def make_request(url,data,data_name,method):
     if method == "POST":
         response = requests.post(url,data=data).json()
     if 'error' in response and str(response['error']["code"]) == "120040101":
-        return response,response["code"]
-    if 'error' in response:return response,response["code"]
+        return response,response["error"]["code"]
+    if 'error' in response:return response,response["error"]["code"]
     if "page" in response:
-        response_data = list()
+        response_data = list() 
         response_data = response[data_name]
         page = 1 
         while int(response['count'])*int(response['page']) < int(response['total']):
@@ -290,7 +282,7 @@ def make_request(url,data,data_name,method):
                 response = requests.post(url,data=data).json()
             if 'error' in response and str(response['error']["code"]) == "120040101":
                 return response_data
-            if 'error' in response:return response,response["code"]
+            if 'error' in response:return response,response["error"]["code"]
             response_data = response_data + response[data_name]
         return response_data,"OK"
     if data_name == "none":
@@ -314,9 +306,14 @@ def delete_videos(video_ids,playlist_ids,youku_user_dict,access_token,refresh_to
     for video_id in video_ids:
         data["video_id"] = video_id
         response,code = make_request(url,data,"none","POST")
-        #if it is system error from youku we have to check if the video still exist to see if we successfully deleted it
-        if code == "1002":deleted_video_ids.append(video_id)
-        deleted_video_ids.append(response["id"])
+        #if it is system error from youku we have to check if the video still exist to see if we successfully deleted it,because it may still shows up on the admin_video channel on youku
+        if code == 1002:
+            url = "https://openapi.youku.com/v2/videos/show_basic.json"
+            data = {"client_id":youku_user_dict["youku_client_id"],"video_id":video_id}
+            response,code = make_request(url,data,"none","GET")
+            if "id" in response:
+                return "1002"
+        deleted_video_ids.append(video_id)
     return deleted_video_ids
 
 

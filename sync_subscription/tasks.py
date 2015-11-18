@@ -8,19 +8,8 @@ from apiclient.discovery import build
 from celery import shared_task
 from django.utils import timezone
 from .models import Video,Token
-import urllib2
-import urllib
-import urlparse
-import codecs
-import re
-import io
 import os
-import random
-import shlex
-import sys
-import json
 import pdb
-import requests
 
 
 #download video from website like youtube
@@ -43,7 +32,8 @@ def upload_video(video_info,access_token,youku_client_id):
     downloader = YoutubeDL()
     title = video_info[u"title"]
     file_name  = downloader.prepare_filename(video_info)
-    tags = ["dassio",video_info["uploader"]]
+    #add video_id 
+    tags = ["dassio",video_info["uploader"],"uploadedFromYoutube"]
     discription  = video_info["description"][0:1950]
 
 
@@ -114,6 +104,8 @@ def sync_playlist(play_list_id,google_user_dict,youku_user_dict):
                 video_item.save()  
 @shared_task
 def sync_channel_videos(videos,youku_user_dict,google_user_dict,access_token,refresh_token):
+    #create an playlist for this channel
+
     for video in videos:
         video_id = video["id"]["videoId"]
         channel_id = video["snippet"]["channelId"]

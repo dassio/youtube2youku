@@ -1,6 +1,5 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from django.template import RequestContext, loader
 from django.conf import settings
 from ws4redis.redis_store import RedisMessage
 from ws4redis.publisher import RedisPublisher
@@ -52,7 +51,6 @@ def get_youku_videos(request):
     playlist_id = request.GET["playlist_id"]
     if not "access_token" in request.session:
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)
-    pdb.set_trace()
     videos = sync.get_playlist_videos(sync.youku_user_dict,playlist_id,request.session["access_token"],request.session["refresh_token"],request.session["playlists"])
     response = {"videos":videos}
     return HttpResponse(json.dumps(response),content_type='application/json')
@@ -63,8 +61,11 @@ def delete_videos(request):
     if not "access_token" in request.session:
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)    
     deleted_video_ids = sync.delete_videos(video_ids,playlist_ids,sync.youku_user_dict,request.session["access_token"],request.session["refresh_token"])
-    if len(deleted_video_ids) == len(video_ids):
+
+    if deleted_video_ids != "1002" and len(deleted_video_ids) == len(video_ids):
         return HttpResponse(json.dumps({"result":"success"}),content_type='application/json')
+    else:
+        return HttpResponse(json.dumps({"result":"failed"}),content_type='application/json')
 
 def search_youtube_channel(request):
     query = request.GET["query"]
@@ -89,7 +90,6 @@ def get_channel_video_number(request):
 
 
 def sync_channel(request):
-    pdb.set_trace()
     if not "access_token" in request.session:
         access_token,refresh_token = sync.get_access_token(sync.youku_user_dict)
     channel_id = request.POST["channel_id"]
