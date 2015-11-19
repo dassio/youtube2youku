@@ -72,7 +72,7 @@ database_user_dict = {
 
 #get access toke for youku using your own username  and password
 #save the token to Session so don't have to get access_token for every request
-#todo:Oauth2
+#TODO:Oauth2
 #---------------------------------------------------------------
 def get_access_token(youku_user_dict):
     youku_client_id = youku_user_dict["youku_client_id"]

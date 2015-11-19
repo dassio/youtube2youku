@@ -35,7 +35,7 @@ def upload_video(video_info,access_token,youku_client_id):
     downloader = YoutubeDL()
     title = video_info[u"title"]
     file_name  = downloader.prepare_filename(video_info)
-    #add video_id 
+    #TODO:add youtube_video_id to youku_video description 
     tags = ["dassio",video_info["uploader"],"uploadedFromYoutube"]
     discription  = video_info["description"][0:1950]
 
@@ -107,8 +107,8 @@ def sync_playlist(play_list_id,google_user_dict,youku_user_dict):
                 video_item.save()  
 @shared_task
 def sync_channel_videos(videos,youku_user_dict,google_user_dict,access_token,refresh_token):
-    #create an playlist for this channel
-
+    #TODO:create an playlist for this channel
+    
     for video in videos:
         video_id = video["id"]["videoId"]
         channel_id = video["snippet"]["channelId"]
