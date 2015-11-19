@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+from .dev_setting import *
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -79,10 +80,10 @@ WSGI_APPLICATION = 'youtube2youku.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'youtube_videos',
-        'HOST': '/opt/local/var/run/mariadb-10.0/mysqld.sock',
-        'USER': 'danny',
-        'PASSWORD': 'danny17b603',
+        'NAME': DATABASE_NAME,
+        'HOST': DATABASE_HOST,
+        'USER': DATABASE_USER,
+        'PASSWORD': DATABASE_PASSWORD,
     }
 }
 
