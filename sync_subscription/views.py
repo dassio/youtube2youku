@@ -8,7 +8,7 @@ import json
 
 
 from .models import Video
-from .tasks import sync_channel_videos
+from .tasks import sync_channel_videos,test
 import sync
 
 

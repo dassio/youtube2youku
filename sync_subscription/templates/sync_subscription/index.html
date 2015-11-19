@@ -37,13 +37,15 @@
                         var video_info = $("<li class='list-group-item'><div class='checkbox' id='"+video_id+"'><label>"+ video.title +"</label></div></li>");
                         $("."+playlist_id + ">.list-group").append(video_info);
                     });
+                    if(playlist_id == "22949573"){
+                        var ws4redis = WS4Redis({
+                            uri: '{{ WEBSOCKET_URI }}uploading?subscribe-broadcast&echo',
+                            receive_message: update_uploding_status,
+                            heartbeat_msg: '{{ WS4REDIS_HEARTBEAT }}',
+                        });
+                    }
                 } 
             });
-            check_video_existence();
-        }
-        //there are some video still show up when deleted
-        function check_video_existence(){
-            
         }
         //check for existing video on youku that is from youtube
         //we first get the playlist and then get videos for each playlist;videos not on any lists is place under uncategorized
@@ -70,6 +72,7 @@
                     });
                 },
             });
+
         }
 
         function getCookie(name) {
@@ -118,8 +121,8 @@
                     if(json.result == "success"){
                         $("#action_result").html("<h5>you have successfully delete the videos</h5>").dialog();
                         check_existing_youtube_videos();
-                    }else{
-                    $("#action_result").html("<h5>failed to delet video,please try later</h5>").dialog();
+                        }else{
+                        $("#action_result").html("<h5>failed to delet video,please try later</h5>").dialog();
                     }
                 }, 
             });
@@ -170,9 +173,21 @@
             }); 
         }
 
-        //get uploding status from the websocket and update page status 
+        //get uploding status from the websocket and update page status
+        //TODO:need to replace the youtube_video_id and channel_id with youku_video_id and youku_playlist
         function update_uploding_status(msg){
-            console.log(msg)
+            console.log(msg);
+            var msg = $.parseJSON(msg);
+            var video_id = msg.video_id.replace(/[!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~]/g, "\\$&");
+            if($("#"+video_id).find(".progress-bar").length == 0){
+                var progress_bar = $("<div class='progress'>  <div class='progress-bar progress-bar-success' role='progressbar' aria-valuenow='60' aria-valuemin='0' aria-valuemax='100' style='width:0%;'> 0%</div></div>");
+                $("#"+video_id).find("label").after(progress_bar);}
+
+            $("#"+video_id).find("label").after(progress_bar);
+            $("#"+video_id).find(".progress-bar").attr("style","width:"+msg.percentage).html(msg.percentage);
+            if(msg.percentage == "100%"){$("#"+video_id).find(".progress-bar").parent().remove()}
+
+
         }
         function sync_channel(){
             var channel_id = $("#select_youtube_videos .modal-dialog").attr("id");

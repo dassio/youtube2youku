@@ -5,13 +5,16 @@ from youku.youku_upload import YoukuUpload
 #google python sdk : pip install --upgrade google-api-python-client
 from apiclient.discovery import build
 
+from ws4redis.publisher import RedisPublisher
+from ws4redis.redis_store import RedisMessage
+
 from celery import shared_task
 from django.utils import timezone
 from .models import Video,Token
 import os
 import pdb
-
-
+import json
+import time
 #download video from website like youtube
 #--------------------------------------------------------
 def download_video(url,google_user_dict):
@@ -121,3 +124,12 @@ def sync_channel_videos(videos,youku_user_dict,google_user_dict,access_token,ref
             video_item.save()
 
 
+#@shared_task
+#def test(video_id):
+#    redis_publisher = RedisPublisher(facility='uploading', broadcast=True)
+#    transferred_percent = 0
+#    while transferred_percent<=100:
+#        uploading_status = RedisMessage(json.dumps({"video_id":video_id,"percentage":unicode("{0:.0f}%".format(transferred_percent),"utf_8")}))
+#        redis_publisher.publish_message(uploading_status)
+#        transferred_percent = transferred_percent + 5
+#        time.sleep(5)

@@ -242,7 +242,8 @@ def get_playlist_videos(youku_user_dict,playlist_id,access_token,refresh_token,p
                 "access_token": access_token}
         response ,code = make_request(url,data,"videos","GET")
         all_videos_byme = [ video for video in response if video["state"] != "none" and video["state"] != "limited"]    
-        all_videos_not_on_playlist = [video for video in all_videos_byme if video not in playlist_videos]
+        playlist_video_ids = [video["id"] for video in playlist_videos]
+        all_videos_not_on_playlist = [video for video in all_videos_byme if video["id"] not in playlist_video_ids]
         return all_videos_not_on_playlist
     else:
         url = "https://openapi.youku.com/v2/playlists/videos.json"

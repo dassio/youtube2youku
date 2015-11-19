@@ -322,7 +322,7 @@ class YoukuUpload(object):
                 write_string(unicode("start uploading to youku\n"))
                 while self.slice_task_id != 0:
                     self.upload_slice()
-                    uploading_status = RedisMessage(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"))
+                    uploading_status = RedisMessage(unicode("{0:.0f}%".format(self.transferred_percent()*100),"utf_8"))
                     redis_publisher.publish_message(uploading_status)
                 return self.commit()
         else:
@@ -333,6 +333,6 @@ class YoukuUpload(object):
             write_string(unicode("start uploading to youku\n"))
             while self.slice_task_id != 0:
                 self.upload_slice()
-	        uploading_status = RedisMessage(unicode("{0:.0f}% \n".format(self.transferred_percent()*100),"utf_8"))
+	        uploading_status = RedisMessage(unicode("{0:.0f}%".format(self.transferred_percent()*100),"utf_8"))
                 redis_publisher.publish_message(uploading_status)
             return self.commit()
